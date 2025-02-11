@@ -123,6 +123,15 @@ inoremap <c-y> <cmd>call augment#Accept()<cr>
 inoremap <cr> <cmd>call augment#Accept("\n")<cr>
 ```
 
+or in neovim
+```lua
+-- Use Ctrl-Y to accept a suggestion
+vim.keymap.set('i', '<C-Y>', '<cmd>call augment#Accept()<CR>', { noremap = true })
+
+-- Use enter to accept a suggestion, falling back to a newline if no suggestion is available
+vim.keymap.set('i', '<cr>', '<cmd>call augment#Accept()<CR>', { noremap = true })
+```
+
 The default tab mapping can be disabled by setting
 `g:augment_disable_tab_mapping = v:true` before the plugin is loaded.
 
