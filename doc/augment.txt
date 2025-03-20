@@ -54,6 +54,9 @@ The following commands are provided:
 `:Augment chat-toggle`
     Open/close the chat conversation window.
 
+`:Augment chat-apply`
+    Apply markdown code blocks from the chat window.
+
 
 ------------------------------------------------------------------------------
 Options                                                   *augment-options*

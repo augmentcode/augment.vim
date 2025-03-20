@@ -234,6 +234,7 @@ function! s:CommandChatToggle(range, args) abort
 endfunction
 
 function! s:CommandChatApply(range, args) abort
+    echo "Applying code blocks..."
     call augment#chat#ApplyCodeBlocks()
 endfunction
 

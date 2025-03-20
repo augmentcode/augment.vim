@@ -19,6 +19,8 @@ function! s:ResetChatContents() abort
                 \ . '`:Augment chat-new`     Start a new conversation'
                 \ . "\n"
                 \ . '`:Augment chat-toggle`  Toggle the chat panel visibility'
+                \ . "\n"
+                \ . '`:Augment chat-apply`   Apply code blocks from the chat panel'
                 \ . "\n\n")
 endfunction
 
@@ -217,6 +219,7 @@ function! augment#chat#GetSelectedText() abort
 endfunction
 
 function! augment#chat#ApplyCodeBlocks() abort
+    call augment#log#Info('Applying code blocks...')
     let history = augment#chat#GetHistory()
     if empty(history)
         call augment#log#Error('No chat history found')
