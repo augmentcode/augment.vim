@@ -219,7 +219,7 @@ function! augment#chat#GetSelectedText() abort
 endfunction
 
 function! augment#chat#ApplyCodeBlocks() abort
-    call augment#log#Info('Applying code blocks...')
+    call augment#log#Info('Applying code blocks... in the function')
     let history = augment#chat#GetHistory()
     if empty(history)
         call augment#log#Error('No chat history found')
@@ -235,7 +235,7 @@ function! augment#chat#ApplyCodeBlocks() abort
         
         for line in lines
             " Check for code block start with path
-            let block_start = matchlist(line, '```\([^[:space:]]\+\)\s\+\(.\+\)$')
+            let block_start = matchlist(line, '````\([^[:space:]]\+\)\s\+\(.\+\)$')
             if !empty(block_start)
                 let in_block = 1
                 let current_block.path = block_start[2]
@@ -244,7 +244,7 @@ function! augment#chat#ApplyCodeBlocks() abort
             endif
 
             " Check for code block end
-            if line =~# '^```$'
+            if line =~# '^````$'
                 if in_block && !empty(current_block.path)
                     " Apply the changes
                     call s:ApplyCodeBlock(current_block)
