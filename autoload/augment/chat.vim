@@ -19,6 +19,8 @@ function! s:ResetChatContents() abort
                 \ . '`:Augment chat-new`     Start a new conversation'
                 \ . "\n"
                 \ . '`:Augment chat-toggle`  Toggle the chat panel visibility'
+                \ . "\n"
+                \ . '`:Augment chat-apply`   Apply code blocks from the chat panel'
                 \ . "\n\n")
 endfunction
 
@@ -214,4 +216,76 @@ function! augment#chat#GetSelectedText() abort
     let [line_start, col_start] = getpos("'<")[1:2]
     let [line_end, col_end] = getpos("'>")[1:2]
     return s:GetBufSelection(line_start, col_start, line_end, col_end)
+endfunction
+
+function! augment#chat#ApplyCodeBlocks() abort
+    call augment#log#Info('Applying code blocks... in the function')
+    let history = augment#chat#GetHistory()
+    if empty(history)
+        call augment#log#Error('No chat history found')
+        return
+    endif
+
+    " Iterate through all messages in history
+    for msg in history
+        let response = msg.response_text
+        let lines = split(response, "\n")
+        let in_block = 0
+        let current_block = {'path': '', 'content': []}
+        
+        for line in lines
+            " Check for code block start with path
+            let block_start = matchlist(line, '````\([^[:space:]]\+\)\s\+path=\(.\+\)\s\+mode=\(.\+\)$')
+            if !empty(block_start)
+                let in_block = 1
+                let current_block.path = block_start[2]
+                let current_block.content = []
+                continue
+            endif
+
+            " Check for code block end
+            if line =~# '^````$'
+                if in_block && !empty(current_block.path)
+                    " Apply the changes
+                    call s:ApplyCodeBlock(current_block)
+                endif
+                let in_block = 0
+                let current_block = {'path': '', 'content': []}
+                continue
+            endif
+
+            " Collect content lines
+            if in_block
+                call add(current_block.content, line)
+            endif
+        endfor
+    endfor
+endfunction
+
+function! s:ApplyCodeBlock(block) abort
+    " Ensure the directory exists
+    let dir = fnamemodify(a:block.path, ':h')
+    if !isdirectory(dir)
+        call mkdir(dir, 'p')
+    endif
+
+    " Check if file exists
+    if filereadable(a:block.path)
+        " Read existing content
+        let existing_content = readfile(a:block.path)
+
+        " Add a newline between existing content and new content if needed
+        if !empty(existing_content) && !empty(a:block.content)
+            call add(existing_content, '')
+        endif
+
+        " Append new content
+        call extend(existing_content, a:block.content)
+        call writefile(existing_content, a:block.path)
+        call augment#log#Info('Appended changes to: ' . a:block.path)
+    else
+        " Create new file
+        call writefile(a:block.content, a:block.path)
+        call augment#log#Info('Created new file: ' . a:block.path)
+    endif
 endfunction

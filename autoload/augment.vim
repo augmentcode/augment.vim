@@ -233,6 +233,12 @@ function! s:CommandChatToggle(range, args) abort
     call augment#chat#Toggle()
 endfunction
 
+function! s:CommandChatApply(range, args) abort
+    echo "Augment:Applying code blocks..."
+    call augment#chat#ApplyCodeBlocks()
+    echo "Augment: Applied code blocks!"
+endfunction
+
 " Handle user commands
 let s:command_handlers = {
     \ 'log': function('s:CommandLog'),
@@ -244,6 +250,7 @@ let s:command_handlers = {
     \ 'chat': function('s:CommandChat'),
     \ 'chat-new': function('s:CommandChatNew'),
     \ 'chat-toggle': function('s:CommandChatToggle'),
+    \ 'chat-apply': function('s:CommandChatApply'),
     \ }
 
 function! augment#Command(range, args) abort range
