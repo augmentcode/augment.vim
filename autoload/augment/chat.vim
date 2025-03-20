@@ -235,7 +235,7 @@ function! augment#chat#ApplyCodeBlocks() abort
         
         for line in lines
             " Check for code block start with path
-            let block_start = matchlist(line, '````\([^[:space:]]\+\)\s\+\(.\+\)$')
+            let block_start = matchlist(line, '````\([^[:space:]]\+\)\s\+path=\(.\+\)\s\+mode=\(.\+\)$')
             if !empty(block_start)
                 let in_block = 1
                 let current_block.path = block_start[2]
