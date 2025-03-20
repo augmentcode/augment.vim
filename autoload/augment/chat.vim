@@ -269,9 +269,23 @@ function! s:ApplyCodeBlock(block) abort
         call mkdir(dir, 'p')
     endif
 
-    " Create or overwrite the file
-    call writefile(a:block.content, a:block.path)
+    " Check if file exists
+    if filereadable(a:block.path)
+        " Read existing content
+        let existing_content = readfile(a:block.path)
 
-    " Log success
-    call augment#log#Info('Applied changes to: ' . a:block.path)
+        " Add a newline between existing content and new content if needed
+        if !empty(existing_content) && !empty(a:block.content)
+            call add(existing_content, '')
+        endif
+
+        " Append new content
+        call extend(existing_content, a:block.content)
+        call writefile(existing_content, a:block.path)
+        call augment#log#Info('Appended changes to: ' . a:block.path)
+    else
+        " Create new file
+        call writefile(a:block.content, a:block.path)
+        call augment#log#Info('Created new file: ' . a:block.path)
+    endif
 endfunction
