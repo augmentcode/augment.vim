@@ -215,3 +215,60 @@ function! augment#chat#GetSelectedText() abort
     let [line_end, col_end] = getpos("'>")[1:2]
     return s:GetBufSelection(line_start, col_start, line_end, col_end)
 endfunction
+
+function! augment#chat#ApplyCodeBlocks() abort
+    let history = augment#chat#GetHistory()
+    if empty(history)
+        call augment#log#Error('No chat history found')
+        return
+    endif
+
+    " Iterate through all messages in history
+    for msg in history
+        let response = msg.response_text
+        let lines = split(response, "\n")
+        let in_block = 0
+        let current_block = {'path': '', 'content': []}
+        
+        for line in lines
+            " Check for code block start with path
+            let block_start = matchlist(line, '```\([^[:space:]]\+\)\s\+\(.\+\)$')
+            if !empty(block_start)
+                let in_block = 1
+                let current_block.path = block_start[2]
+                let current_block.content = []
+                continue
+            endif
+
+            " Check for code block end
+            if line =~# '^```$'
+                if in_block && !empty(current_block.path)
+                    " Apply the changes
+                    call s:ApplyCodeBlock(current_block)
+                endif
+                let in_block = 0
+                let current_block = {'path': '', 'content': []}
+                continue
+            endif
+
+            " Collect content lines
+            if in_block
+                call add(current_block.content, line)
+            endif
+        endfor
+    endfor
+endfunction
+
+function! s:ApplyCodeBlock(block) abort
+    " Ensure the directory exists
+    let dir = fnamemodify(a:block.path, ':h')
+    if !isdirectory(dir)
+        call mkdir(dir, 'p')
+    endif
+
+    " Create or overwrite the file
+    call writefile(a:block.content, a:block.path)
+
+    " Log success
+    call augment#log#Info('Applied changes to: ' . a:block.path)
+endfunction
