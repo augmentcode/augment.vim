@@ -60,8 +60,6 @@ function! augment#chat#OpenChatPanel() abort
     setlocal wrap                " Wrap long lines
     setlocal linebreak           " Wrap at word boundaries
     setlocal filetype=markdown   " Use markdown syntax highlighting
-    setlocal nonumber            " Hide line numbers
-    setlocal norelativenumber    " Hide relative line numbers
     setlocal signcolumn=no       " Hide sign column
     setlocal nocursorline        " Disable cursor line highlighting
     setlocal nospell             " Disable spell checking
