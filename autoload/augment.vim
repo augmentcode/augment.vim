@@ -173,7 +173,7 @@ function! s:CommandChat(range, args) abort
 
     " If range arguments were provided (when using :Augment chat) or in visual
     " mode, get the selected text
-    if a:range == 2 || mode() ==# 'v' || mode() ==# 'V'
+    if a:range == 2 || mode() ==# 'v' || mode() ==# 'V' || mode() ==# nr2char(22)
         let selected_text = augment#chat#GetSelectedText()
     else
         let selected_text = ''

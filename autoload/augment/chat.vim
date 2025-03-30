@@ -160,16 +160,26 @@ function! s:GetBufSelection(line_start, col_start, line_end, col_end) abort
         return getline(a:line_start)[a:col_start - 1:a:col_end - 1]
     endif
 
+    " mode() == 'n' means we're working with Ex mode using marks
+    if mode() ==# 'n' || mode() ==# 'v' || mode() ==# 'V'
+        let lines = []
+        call add(lines, getline(a:line_start)[a:col_start - 1:])
+        call extend(lines, getline(a:line_start + 1, a:line_end - 1))
+        call add(lines, getline(a:line_end)[0:a:col_end - 1])
+        return join(lines, "\n")
+    endif
+
+    " We're in visual block mode
     let lines = []
-    call add(lines, getline(a:line_start)[a:col_start - 1:])
-    call extend(lines, getline(a:line_start + 1, a:line_end - 1))
-    call add(lines, getline(a:line_end)[0:a:col_end - 1])
+    for lnum in range(a:line_start, a:line_end)
+        call add(lines, getline(lnum)[a:col_start - 1:a:col_end - 1])
+    endfor
     return join(lines, "\n")
 endfunction
 
 function! augment#chat#GetSelectedText() abort
     " If in visual mode use the current selection
-    if mode() ==# 'v' || mode() ==# 'V'
+    if mode() ==# 'v' || mode() ==# 'V' || mode() ==# nr2char(22)
         let [line_one, col_one] = getpos('.')[1:2]
         let [line_two, col_two] = getpos('v')[1:2]
 
@@ -196,10 +206,6 @@ function! augment#chat#GetSelectedText() abort
                 let col_end = col_one
             endif
         endif
-
-        " . and v return column positions one lower than '< and '>
-        let col_start += 1
-        let col_end += 1
 
         " In visual line mode, the columns will be incorrect
         if mode() ==# 'V'
