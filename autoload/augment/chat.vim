@@ -55,6 +55,7 @@ function! augment#chat#OpenChatPanel() abort
     if exists('&winfixbuf')
         setlocal winfixbuf       " Keep buffer in window when splitting
     endif
+    setlocal winfixwidth         " Never change the window's width
     setlocal bufhidden=hide      " When buffer is abandoned, hide it
     setlocal nobuflisted         " Hide from :ls
     setlocal wrap                " Wrap long lines
