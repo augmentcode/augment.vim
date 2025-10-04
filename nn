@@ -1,0 +1,512 @@
+# Database Schema - نظام إدارة الشركة
+
+## SQLite Database Schema
+
+### 1. إعدادات الشركة (Company Settings)
+
+```sql
+CREATE TABLE company_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_name TEXT NOT NULL DEFAULT 'نبتة المستقبل للتجارة والتوزيع',
+    address TEXT,
+    phone TEXT,
+    logo_path TEXT,
+    font_size INTEGER DEFAULT 14,
+    font_family TEXT DEFAULT 'Tajawal',
+    logo_width INTEGER DEFAULT 100,
+    logo_height INTEGER DEFAULT 100,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default company settings
+INSERT INTO company_settings (company_name) 
+VALUES ('نبتة المستقبل للتجارة والتوزيع');
+```
+
+### 2. الفئات (Categories)
+
+```sql
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_categories_name ON categories(name);
+```
+
+### 3. العملاء (Customers)
+
+```sql
+CREATE TABLE customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    balance DECIMAL(15,2) DEFAULT 0.00,
+    cash_on_hand DECIMAL(15,2) DEFAULT 0.00,
+    notes TEXT,
+    return_notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_customers_name ON customers(name);
+CREATE INDEX idx_customers_phone ON customers(phone);
+```
+
+### 4. الموردين (Suppliers)
+
+```sql
+CREATE TABLE suppliers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    address TEXT,
+    phone TEXT,
+    balance DECIMAL(15,2) DEFAULT 0.00,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_suppliers_name ON suppliers(name);
+CREATE INDEX idx_suppliers_phone ON suppliers(phone);
+```
+
+### 5. المنتجات (Products)
+
+```sql
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category_id INTEGER,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    quantity INTEGER DEFAULT 0,
+    barcode TEXT UNIQUE,
+    image_path TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX idx_products_barcode ON products(barcode);
+CREATE INDEX idx_products_name ON products(name);
+CREATE INDEX idx_products_category_id ON products(category_id);
+
+-- Trigger to generate barcode if not provided
+CREATE TRIGGER generate_product_barcode 
+AFTER INSERT ON products 
+WHEN NEW.barcode IS NULL
+BEGIN
+    UPDATE products 
+    SET barcode = 'PRD' || printf('%06d', NEW.id)
+    WHERE id = NEW.id;
+END;
+```
+
+### 6. الفواتير (Invoices)
+
+```sql
+CREATE TABLE invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_number TEXT NOT NULL UNIQUE,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    customer_id INTEGER,
+    supplier_id INTEGER,
+    total_amount DECIMAL(15,2) DEFAULT 0.00,
+    type TEXT NOT NULL CHECK (type IN ('sale', 'purchase')),
+    barcode TEXT UNIQUE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+    CHECK (
+        (type = 'sale' AND customer_id IS NOT NULL AND supplier_id IS NULL) OR
+        (type = 'purchase' AND supplier_id IS NOT NULL AND customer_id IS NULL)
+    )
+);
+
+CREATE UNIQUE INDEX idx_invoices_number ON invoices(invoice_number);
+CREATE INDEX idx_invoices_date ON invoices(date);
+CREATE INDEX idx_invoices_customer_id ON invoices(customer_id);
+CREATE INDEX idx_invoices_supplier_id ON invoices(supplier_id);
+CREATE INDEX idx_invoices_type ON invoices(type);
+
+-- Trigger to generate invoice number
+CREATE TRIGGER generate_invoice_number 
+AFTER INSERT ON invoices 
+WHEN NEW.invoice_number IS NULL
+BEGIN
+    UPDATE invoices 
+    SET invoice_number = 'INV-' || printf('%04d', NEW.id)
+    WHERE id = NEW.id;
+END;
+
+-- Trigger to generate invoice barcode
+CREATE TRIGGER generate_invoice_barcode 
+AFTER INSERT ON invoices 
+BEGIN
+    UPDATE invoices 
+    SET barcode = 'INV' || printf('%08d', NEW.id)
+    WHERE id = NEW.id;
+END;
+```
+
+### 7. تفاصيل الفاتورة (Invoice Details)
+
+```sql
+CREATE TABLE invoice_details (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(15,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_invoice_details_invoice_id ON invoice_details(invoice_id);
+CREATE INDEX idx_invoice_details_product_id ON invoice_details(product_id);
+
+-- Trigger to calculate total_price
+CREATE TRIGGER calculate_invoice_detail_total 
+BEFORE INSERT ON invoice_details
+BEGIN
+    UPDATE NEW SET total_price = NEW.quantity * NEW.unit_price;
+END;
+
+-- Trigger to update invoice total when detail is inserted
+CREATE TRIGGER update_invoice_total_on_insert 
+AFTER INSERT ON invoice_details
+BEGIN
+    UPDATE invoices 
+    SET total_amount = (
+        SELECT SUM(total_price) 
+        FROM invoice_details 
+        WHERE invoice_id = NEW.invoice_id
+    )
+    WHERE id = NEW.invoice_id;
+END;
+
+-- Trigger to update product quantity on sale
+CREATE TRIGGER update_product_quantity_on_sale 
+AFTER INSERT ON invoice_details
+WHEN (SELECT type FROM invoices WHERE id = NEW.invoice_id) = 'sale'
+BEGIN
+    UPDATE products 
+    SET quantity = quantity - NEW.quantity
+    WHERE id = NEW.product_id;
+END;
+
+-- Trigger to update product quantity on purchase
+CREATE TRIGGER update_product_quantity_on_purchase 
+AFTER INSERT ON invoice_details
+WHEN (SELECT type FROM invoices WHERE id = NEW.invoice_id) = 'purchase'
+BEGIN
+    UPDATE products 
+    SET quantity = quantity + NEW.quantity
+    WHERE id = NEW.product_id;
+END;
+```
+
+### 8. المرتجعات (Returns)
+
+```sql
+CREATE TABLE returns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    reason TEXT,
+    refund_amount DECIMAL(10,2) DEFAULT 0.00,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_returns_invoice_id ON returns(invoice_id);
+CREATE INDEX idx_returns_product_id ON returns(product_id);
+CREATE INDEX idx_returns_date ON returns(date);
+
+-- Trigger to update product quantity on return
+CREATE TRIGGER update_product_quantity_on_return 
+AFTER INSERT ON returns
+BEGIN
+    UPDATE products 
+    SET quantity = quantity + NEW.quantity
+    WHERE id = NEW.product_id;
+END;
+```
+
+### 9. الحركات المالية (Financial Transactions)
+
+```sql
+CREATE TABLE financial_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER,
+    supplier_id INTEGER,
+    amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
+    type TEXT NOT NULL CHECK (type IN ('payment', 'receipt')),
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+    CHECK (
+        (customer_id IS NOT NULL AND supplier_id IS NULL) OR
+        (supplier_id IS NOT NULL AND customer_id IS NULL)
+    )
+);
+
+CREATE INDEX idx_financial_transactions_customer_id ON financial_transactions(customer_id);
+CREATE INDEX idx_financial_transactions_supplier_id ON financial_transactions(supplier_id);
+CREATE INDEX idx_financial_transactions_date ON financial_transactions(date);
+CREATE INDEX idx_financial_transactions_type ON financial_transactions(type);
+
+-- Trigger to update customer balance
+CREATE TRIGGER update_customer_balance 
+AFTER INSERT ON financial_transactions
+WHEN NEW.customer_id IS NOT NULL
+BEGIN
+    UPDATE customers 
+    SET balance = balance + CASE 
+        WHEN NEW.type = 'payment' THEN -NEW.amount
+        WHEN NEW.type = 'receipt' THEN NEW.amount
+    END
+    WHERE id = NEW.customer_id;
+END;
+
+-- Trigger to update supplier balance
+CREATE TRIGGER update_supplier_balance 
+AFTER INSERT ON financial_transactions
+WHEN NEW.supplier_id IS NOT NULL
+BEGIN
+    UPDATE suppliers 
+    SET balance = balance + CASE 
+        WHEN NEW.type = 'payment' THEN NEW.amount
+        WHEN NEW.type = 'receipt' THEN -NEW.amount
+    END
+    WHERE id = NEW.supplier_id;
+END;
+```
+
+### 10. العمالة اليومية (Daily Labor)
+
+```sql
+CREATE TABLE daily_labor (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    wage DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_daily_labor_date ON daily_labor(date);
+CREATE INDEX idx_daily_labor_name ON daily_labor(name);
+```
+
+### 11. المستخدمين (Users) - للمستقبل
+
+```sql
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_users_username ON users(username);
+```
+
+### 12. سجل النشاطات (Activity Log) - للتتبع
+
+```sql
+CREATE TABLE activity_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    table_name TEXT NOT NULL,
+    record_id INTEGER,
+    old_values TEXT, -- JSON
+    new_values TEXT, -- JSON
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_activity_log_user_id ON activity_log(user_id);
+CREATE INDEX idx_activity_log_table_name ON activity_log(table_name);
+CREATE INDEX idx_activity_log_created_at ON activity_log(created_at);
+```
+
+## Views للتقارير السريعة
+
+### 1. تقرير المنتجات مع الفئات
+
+```sql
+CREATE VIEW products_with_categories AS
+SELECT 
+    p.id,
+    p.name,
+    p.barcode,
+    p.price,
+    p.quantity,
+    c.name as category_name,
+    p.image_path,
+    p.created_at
+FROM products p
+LEFT JOIN categories c ON p.category_id = c.id;
+```
+
+### 2. تقرير الفواتير مع التفاصيل
+
+```sql
+CREATE VIEW invoices_summary AS
+SELECT 
+    i.id,
+    i.invoice_number,
+    i.date,
+    i.type,
+    CASE 
+        WHEN i.type = 'sale' THEN c.name
+        WHEN i.type = 'purchase' THEN s.name
+    END as client_name,
+    i.total_amount,
+    COUNT(id_det.id) as items_count
+FROM invoices i
+LEFT JOIN customers c ON i.customer_id = c.id
+LEFT JOIN suppliers s ON i.supplier_id = s.id
+LEFT JOIN invoice_details id_det ON i.id = id_det.invoice_id
+GROUP BY i.id;
+```
+
+### 3. تقرير الأرصدة
+
+```sql
+CREATE VIEW customer_balances AS
+SELECT 
+    c.id,
+    c.name,
+    c.phone,
+    c.balance,
+    c.cash_on_hand,
+    COALESCE(SUM(ft.amount), 0) as total_transactions
+FROM customers c
+LEFT JOIN financial_transactions ft ON c.id = ft.customer_id
+GROUP BY c.id;
+```
+
+## Database Constraints & Rules
+
+### إعدادات إضافية لـ SQLite
+
+```sql
+-- Enable foreign key constraints
+PRAGMA foreign_keys = ON;
+
+-- Set journal mode for better performance
+PRAGMA journal_mode = WAL;
+
+-- Set synchronous mode for balance between safety and performance
+PRAGMA synchronous = NORMAL;
+
+-- Optimize SQLite for application use
+PRAGMA cache_size = -64000; -- 64MB cache
+PRAGMA temp_store = MEMORY;
+PRAGMA mmap_size = 268435456; -- 256MB memory-mapped I/O
+```
+
+### نسخ احتياطية تلقائية
+
+```sql
+-- Create backup table for critical operations
+CREATE TABLE backup_metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    backup_type TEXT NOT NULL, -- 'auto', 'manual'
+    file_path TEXT NOT NULL,
+    size INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Database Migration System
+
+### إصدارات قاعدة البيانات
+
+```sql
+CREATE TABLE schema_version (
+    version INTEGER PRIMARY KEY,
+    description TEXT,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO schema_version (version, description) 
+VALUES (1, 'Initial schema creation');
+```
+
+### Migration Scripts Structure
+
+```
+/database
+  /migrations
+    - 001_initial_schema.sql
+    - 002_add_activity_log.sql
+    - 003_add_user_management.sql
+  /seeds
+    - default_categories.sql
+    - sample_data.sql
+```
+
+## Performance Optimization
+
+### Indexes for Common Queries
+
+```sql
+-- Composite indexes for frequent searches
+CREATE INDEX idx_invoice_details_invoice_product ON invoice_details(invoice_id, product_id);
+CREATE INDEX idx_returns_invoice_product ON returns(invoice_id, product_id);
+
+-- Date-based indexes for reports
+CREATE INDEX idx_invoices_date_type ON invoices(date, type);
+CREATE INDEX idx_financial_transactions_date_type ON financial_transactions(date, type);
+
+-- Text search indexes
+CREATE INDEX idx_products_name_lower ON products(LOWER(name));
+CREATE INDEX idx_customers_name_lower ON customers(LOWER(name));
+```
+
+### فهرسة النصوص العربية
+
+```sql
+-- Enable FTS for Arabic text search (if needed)
+CREATE VIRTUAL TABLE products_fts USING fts5(
+    name, 
+    content='products', 
+    content_rowid='id',
+    tokenize='unicode61'
+);
+
+-- Triggers to keep FTS in sync
+CREATE TRIGGER products_fts_insert AFTER INSERT ON products BEGIN
+    INSERT INTO products_fts(rowid, name) VALUES (new.id, new.name);
+END;
+
+CREATE TRIGGER products_fts_delete AFTER DELETE ON products BEGIN
+    INSERT INTO products_fts(products_fts, rowid, name) VALUES('delete', old.id, old.name);
+END;
+
+CREATE TRIGGER products_fts_update AFTER UPDATE ON products BEGIN
+    INSERT INTO products_fts(products_fts, rowid, name) VALUES('delete', old.id, old.name);
+    INSERT INTO products_fts(rowid, name) VALUES (new.id, new.name);
+END;
