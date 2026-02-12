@@ -8,6 +8,8 @@ Table of Contents                                  *augment-table-of-contents*
 2. Commands                                                 |augment-commands|
 3. Options                                                   |augment-options|
 4. Alternate Keybinds                             |augment-alternate-keybinds|
+   - augment#AcceptWord()                              |augment#AcceptWord()|
+   - augment#Dismiss()                                    |augment#Dismiss()|
 5. Highlighting                                         |augment-highlighting|
 
 ------------------------------------------------------------------------------
@@ -122,7 +124,7 @@ Alternate Keybinds                             *augment-alternate-keybinds*
 
 By default, tab is used to accept a suggestion. If you want to use a different
 key, create a mapping that calls `augment#Accept()`. The function takes an
-optional arugment used to specify the fallback text to insert if no suggestion
+optional argument used to specify the fallback text to insert if no suggestion
 is available.
 
 >vim
@@ -132,6 +134,30 @@ is available.
     " Use enter to accept a suggestion, falling back to a newline if no suggestion
     " is available
     inoremap <cr> <cmd>call augment#Accept("\n")<cr>
+<
+
+                                                            *augment#AcceptWord()*
+You can also accept only the next word of a suggestion using
+`augment#AcceptWord()`. This function also takes an optional fallback argument.
+
+>vim
+    " Accept the next word of a suggestion with Ctrl-Right
+    inoremap <c-right> <cmd>call augment#AcceptWord()<cr>
+<
+
+Or, with a fallback:
+
+>vim
+    " Accept the next word, falling back to moving the cursor right
+    inoremap <c-right> <cmd>call augment#AcceptWord("\<c-right>")<cr>
+<
+
+                                                            *augment#Dismiss()*
+To dismiss a suggestion manually, use `augment#Dismiss()`:
+
+>vim
+    " Dismiss the current suggestion with Escape
+    inoremap <esc> <cmd>call augment#Dismiss()<cr><esc>
 <
 
 ------------------------------------------------------------------------------

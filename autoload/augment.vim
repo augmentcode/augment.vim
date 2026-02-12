@@ -296,12 +296,20 @@ function! augment#OnTextChanged() abort
 endfunction
 
 function! augment#OnTextChangedI() abort
-    " Since CursorMovedI is always called before TextChangedI, the suggestion will already be cleared
     call s:UpdateBuffer()
+    " During AcceptWord, skip requesting new completions so they don't
+    " overwrite the partially-accepted suggestion
+    if get(b:, '_augment_suggestion_skip_clear', v:false)
+        return
+    endif
     call s:RequestCompletion()
 endfunction
 
 function! augment#OnCursorMovedI() abort
+    " If skip_clear flag is set, don't clear the suggestion
+    if get(b:, '_augment_suggestion_skip_clear', v:false)
+        return
+    endif
     call augment#suggestion#Clear()
 endfunction
 
@@ -311,7 +319,22 @@ function! augment#OnInsertEnter() abort
 endfunction
 
 function! augment#OnInsertLeavePre() abort
+    let b:_augment_suggestion_skip_clear = v:false
     call augment#suggestion#Clear()
+endfunction
+
+" Dismiss the currently active suggestion
+function! augment#Dismiss() abort
+    let b:_augment_suggestion_skip_clear = v:false
+    call augment#suggestion#Clear()
+endfunction
+
+" Accept the next word of the suggestion, with optional fallback
+function! augment#AcceptWord(...) abort
+    let fallback = a:0 >= 1 ? a:1 : ''
+    if !augment#suggestion#AcceptWord()
+        call feedkeys(fallback, 'nt')
+    endif
 endfunction
 
 " Accept the currently active suggestion if one is available, otherwise insert

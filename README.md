@@ -168,6 +168,28 @@ inoremap <c-y> <cmd>call augment#Accept()<cr>
 inoremap <cr> <cmd>call augment#Accept("\n")<cr>
 ```
 
+You can also accept only the next word of a suggestion using `augment#AcceptWord()`.
+This function also takes an optional fallback argument:
+
+```vim
+" Accept the next word of a suggestion with Ctrl-Right
+inoremap <c-right> <cmd>call augment#AcceptWord()<cr>
+```
+
+Or, with a fallback:
+
+```vim
+" Accept the next word, falling back to moving the cursor right
+inoremap <c-right> <cmd>call augment#AcceptWord("\<c-right>")<cr>
+```
+
+To dismiss a suggestion manually, use `augment#Dismiss()`:
+
+```vim
+" Dismiss the current suggestion with Escape
+inoremap <esc> <cmd>call augment#Dismiss()<cr><esc>
+```
+
 The default tab mapping can be disabled by setting
 `g:augment_disable_tab_mapping = v:true` before the plugin is loaded.
 
