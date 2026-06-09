@@ -186,8 +186,9 @@ function! s:CommandChat(range, args) abort
     " prompt the user for a message
     let message = empty(a:args) ? input('Message: ') : a:args
 
-    " Handle cancellation or empty input
-    if message ==# '' || message =~# '^\s*$'
+    " Handle cancellation or empty input. \_s matches whitespace including
+    " newlines, so a message that is only blank lines is treated as cancel.
+    if message ==# '' || message =~# '^\_s*$'
         redraw
         echo 'Chat cancelled'
         return
@@ -225,6 +226,65 @@ function! s:CommandChat(range, args) abort
     call augment#client#Client().Request('augment/chat', params)
 endfunction
 
+" Open a floating window to compose a chat message before sending it. The
+" floating input is Neovim-only; in Vim (and when a message is supplied
+" directly) this falls back to the standard chat command, which prompts for a
+" message via input() when none is given.
+function! s:CommandChatInput(range, args) abort
+    if !s:IsRunning()
+        echohl WarningMsg
+        echo s:NOT_RUNNING_MSG
+        echohl None
+        return
+    endif
+
+    " Determine whether a selection range is active. Leave visual mode so the
+    " '< and '> marks are set for the chat flow to pick up on submit.
+    let was_visual = index(['v', 'V', "\<C-v>"], mode()) >= 0
+    if was_visual
+        execute "normal! \<Esc>"
+    endif
+    let ranged = a:range == 2 || was_visual
+
+    " A message passed directly on the command line skips the floating input.
+    " Vim has no editable floating window, so it falls back to the input()
+    " prompt provided by the standard chat command.
+    if !empty(a:args) || !has('nvim')
+        call s:CommandChat(ranged ? 2 : 0, a:args)
+        return
+    endif
+
+    let source_win = win_getid()
+    let Callback = function('s:ChatInputSubmit', [source_win, ranged])
+    call augment#chat#OpenInputWindow(Callback)
+endfunction
+
+" Handle a message submitted from the floating chat input
+function! s:ChatInputSubmit(source_win, ranged, message) abort
+    " \_s matches whitespace including newlines, so a buffer of only blank
+    " lines is treated as cancel rather than sending an empty message.
+    if a:message ==# '' || a:message =~# '^\_s*$'
+        redraw
+        echo 'Chat cancelled'
+        return
+    endif
+
+    " Restore focus to the window the input was opened from
+    if win_id2win(a:source_win) != 0
+        call win_gotoid(a:source_win)
+    endif
+
+    " Re-select the original range so it is passed through to the chat request,
+    " mirroring the behavior of `:Augment chat` in visual mode. The '< and '>
+    " marks were set when the command left visual mode, so `gv` works whether
+    " invoked from visual mode or via an explicit `:'<,'>` range.
+    if a:ranged
+        normal! gv
+    endif
+
+    call s:CommandChat(a:ranged ? 2 : 0, a:message)
+endfunction
+
 function! s:CommandChatNew(range, args) abort
     call augment#chat#Reset()
 endfunction
@@ -256,6 +316,13 @@ let s:command_help = [
     \     'Start a chat with Augment AI. In visual mode, the selected text will',
     \     'be included in the chat request. If no message is provided, you will',
     \     'be prompted to enter one.',
+    \ ]},
+    \ {'name': 'chat-input', 'usage': 'chat-input', 'summary': 'Compose a chat message in a floating window (Neovim only).', 'detail': [
+    \     'Open a centered floating window with a markdown scratch buffer for',
+    \     'composing a chat message before sending it. Submit with <C-s> or, in',
+    \     'normal mode, <CR>; cancel with <Esc> or <C-c>. Like ":Augment chat" it',
+    \     'is range-aware. Requires Neovim; in Vim it falls back to the input()',
+    \     'prompt used by ":Augment chat".',
     \ ]},
     \ {'name': 'chat-new', 'usage': 'chat-new', 'summary': 'Start a new chat conversation.', 'detail': [
     \     'Start a new chat conversation with Augment AI, clearing the history',
@@ -326,6 +393,7 @@ let s:command_handlers = {
     \ 'disable': function('s:CommandDisable'),
     \ 'status': function('s:CommandStatus'),
     \ 'chat': function('s:CommandChat'),
+    \ 'chat-input': function('s:CommandChatInput'),
     \ 'chat-new': function('s:CommandChatNew'),
     \ 'chat-toggle': function('s:CommandChatToggle'),
     \ 'help': function('s:CommandHelp'),

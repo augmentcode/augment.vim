@@ -79,6 +79,97 @@ function! augment#chat#OpenChatPanel() abort
     call win_gotoid(current_win)
 endfunction
 
+" Open a centered floating window with a scratch markdown buffer for composing
+" a chat message. a:OnSubmit is a Funcref invoked with the composed message
+" when the user submits. This relies on Neovim's floating window API and should
+" only be called when running under Neovim.
+function! augment#chat#OpenInputWindow(OnSubmit) abort
+    " If an input window is already open, refocus it instead of opening a new
+    " one. This avoids orphaning the existing float (and losing any typed
+    " content) when the command is invoked again after focus moved away.
+    if exists('s:input_win') && s:input_win != -1 && nvim_win_is_valid(s:input_win)
+        call nvim_set_current_win(s:input_win)
+        startinsert
+        return
+    endif
+
+    let s:input_on_submit = a:OnSubmit
+
+    " Create an unlisted scratch buffer (buftype=nofile, noswapfile)
+    let buf = nvim_create_buf(v:false, v:true)
+
+    " Center the window, sizing it relative to the editor dimensions
+    let width = float2nr(&columns * 0.6)
+    let width = max([40, min([width, &columns - 4])])
+    let height = max([5, min([10, &lines - 4])])
+    let row = (&lines - height) / 2
+    let col = (&columns - width) / 2
+
+    let opts = {
+                \ 'relative': 'editor',
+                \ 'width': width,
+                \ 'height': height,
+                \ 'row': row,
+                \ 'col': col,
+                \ 'style': 'minimal',
+                \ 'border': 'rounded',
+                \ 'title': ' Augment Chat (<C-s>/<CR> submit, <Esc> cancel) ',
+                \ 'title_pos': 'center',
+                \ }
+
+    let s:input_win = nvim_open_win(buf, v:true, opts)
+    let s:input_buf = buf
+
+    setlocal filetype=markdown   " Use markdown syntax highlighting
+    setlocal bufhidden=wipe      " Discard the buffer when the window closes
+    setlocal wrap                " Wrap long lines
+    setlocal linebreak           " Wrap at word boundaries
+
+    " Submit with <C-s> (insert and normal) or <CR> (normal)
+    inoremap <buffer> <silent> <C-s> <Esc><Cmd>call <SID>InputSubmit()<CR>
+    nnoremap <buffer> <silent> <C-s> <Cmd>call <SID>InputSubmit()<CR>
+    nnoremap <buffer> <silent> <CR> <Cmd>call <SID>InputSubmit()<CR>
+    " Cancel with <Esc> (normal) or <C-c> (insert and normal)
+    nnoremap <buffer> <silent> <Esc> <Cmd>call <SID>InputCancel()<CR>
+    inoremap <buffer> <silent> <C-c> <Esc><Cmd>call <SID>InputCancel()<CR>
+    nnoremap <buffer> <silent> <C-c> <Cmd>call <SID>InputCancel()<CR>
+
+    " Start in insert mode so the user can type immediately
+    startinsert
+endfunction
+
+function! s:CloseInputWindow() abort
+    if exists('s:input_win') && s:input_win != -1 && nvim_win_is_valid(s:input_win)
+        call nvim_win_close(s:input_win, v:true)
+    endif
+    let s:input_win = -1
+endfunction
+
+" Join the buffer contents into a message, close the window, and invoke the
+" stored submit callback with the message.
+function! s:InputSubmit() abort
+    if !exists('s:input_buf') || !nvim_buf_is_valid(s:input_buf)
+        call s:CloseInputWindow()
+        return
+    endif
+
+    let lines = nvim_buf_get_lines(s:input_buf, 0, -1, v:false)
+    let message = join(lines, "\n")
+    let Callback = s:input_on_submit
+
+    call s:CloseInputWindow()
+
+    if type(Callback) == v:t_func
+        call Callback(message)
+    endif
+endfunction
+
+function! s:InputCancel() abort
+    call s:CloseInputWindow()
+    redraw
+    echo 'Chat cancelled'
+endfunction
+
 function! augment#chat#Reset() abort
     call s:ResetChatContents()
     call s:ResetHistory()
