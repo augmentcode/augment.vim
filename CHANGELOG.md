@@ -11,6 +11,10 @@ include any changes that may impact the user experience.
   like `:Augment chat`, and falls back to the standard `input()` prompt on Vim.
 - Add the `:Augment help [command]` command, which lists the available commands
   or shows more detailed help for a specific command.
+- Fix Neovim API deprecation warnings: migrate from `vim.lsp.start_client` to
+  `vim.lsp.start` (with `attach = false` to preserve the plugin's explicit
+  buffer-attach logic) and use the colon-method syntax for `client:notify` and
+  `client:request` on Neovim 0.11+, with a compatibility fallback for 0.10.
 
 ## 0.25.1
 

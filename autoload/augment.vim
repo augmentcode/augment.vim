@@ -23,6 +23,11 @@ function! s:OpenBuffer() abort
         return
     endif
 
+    " Ignore non-file buffers
+    if &buftype != ''
+        return
+    endif
+
     let client = augment#client#Client()
     if has('nvim')
         call luaeval('require("augment").open_buffer(_A[1], _A[2])', [client.client_id, bufnr('%')])
@@ -43,6 +48,11 @@ endfunction
 " Notify the server that a buffer has been updated
 function! s:UpdateBuffer() abort
     if !s:IsRunning()
+        return
+    endif
+
+    " Ignore non-file buffers
+    if &buftype != ''
         return
     endif
 
@@ -70,6 +80,11 @@ endfunction
 " Request a completion from the server
 function! s:RequestCompletion() abort
     if !s:IsRunning()
+        return
+    endif
+
+    " Ignore non-file buffers
+    if &buftype != ''
         return
     endif
 

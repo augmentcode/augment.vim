@@ -153,6 +153,14 @@ is available.
     " Use enter to accept a suggestion, falling back to a newline if no suggestion
     " is available
     inoremap <cr> <cmd>call augment#Accept("\n")<cr>
+
+Of, for neovim:
+
+>lua
+    -- Use Ctrl-Y to accept a suggestion
+    vim.keymap.set('i', '<C-Y>', '<cmd>call augment#Accept()<CR>', { noremap = true })
+    -- Use enter to accept a suggestion, falling back to a newline if no suggestion is available
+    vim.keymap.set('i', '<cr>', '<cmd>call augment#Accept()<CR>', { noremap = true })
 <
 
 ------------------------------------------------------------------------------
