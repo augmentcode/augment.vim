@@ -4,6 +4,12 @@ This file documents the notable changes for each stable version of the Augment
 Vim plugin. The following list is not necessarily comprehensive, but should
 include any changes that may impact the user experience.
 
+## Unreleased
+
+- Add the `:Augment chat-input` command, which opens a floating window for
+  composing a chat message before sending it (Neovim only). It is range-aware
+  like `:Augment chat`, and falls back to the standard `input()` prompt on Vim.
+
 ## 0.25.1
 
 - Deprecate the `Enable` and `Disable` commands in favor of the

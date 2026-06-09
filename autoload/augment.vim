@@ -225,6 +225,61 @@ function! s:CommandChat(range, args) abort
     call augment#client#Client().Request('augment/chat', params)
 endfunction
 
+" Open a floating window to compose a chat message before sending it. The
+" floating input is Neovim-only; in Vim (and when a message is supplied
+" directly) this falls back to the standard chat command, which prompts for a
+" message via input() when none is given.
+function! s:CommandChatInput(range, args) abort
+    if !s:IsRunning()
+        echohl WarningMsg
+        echo s:NOT_RUNNING_MSG
+        echohl None
+        return
+    endif
+
+    " Determine whether a selection range is active. Leave visual mode so the
+    " '< and '> marks are set for the chat flow to pick up on submit.
+    let was_visual = index(['v', 'V', "\<C-v>"], mode()) >= 0
+    if was_visual
+        execute "normal! \<Esc>"
+    endif
+    let ranged = a:range == 2 || was_visual
+
+    " A message passed directly on the command line skips the floating input.
+    " Vim has no editable floating window, so it falls back to the input()
+    " prompt provided by the standard chat command.
+    if !empty(a:args) || !has('nvim')
+        call s:CommandChat(ranged ? 2 : 0, a:args)
+        return
+    endif
+
+    let source_win = win_getid()
+    let Callback = function('s:ChatInputSubmit', [source_win, ranged, was_visual])
+    call augment#chat#OpenInputWindow(Callback)
+endfunction
+
+" Handle a message submitted from the floating chat input
+function! s:ChatInputSubmit(source_win, ranged, reselect, message) abort
+    if a:message ==# '' || a:message =~# '^\s*$'
+        redraw
+        echo 'Chat cancelled'
+        return
+    endif
+
+    " Restore focus to the window the input was opened from
+    if win_id2win(a:source_win) != 0
+        call win_gotoid(a:source_win)
+    endif
+
+    " Re-select the original visual range so it is passed through to the chat
+    " request, mirroring the behavior of `:Augment chat` in visual mode.
+    if a:reselect
+        normal! gv
+    endif
+
+    call s:CommandChat(a:ranged ? 2 : 0, a:message)
+endfunction
+
 function! s:CommandChatNew(range, args) abort
     call augment#chat#Reset()
 endfunction
@@ -242,6 +297,7 @@ let s:command_handlers = {
     \ 'disable': function('s:CommandDisable'),
     \ 'status': function('s:CommandStatus'),
     \ 'chat': function('s:CommandChat'),
+    \ 'chat-input': function('s:CommandChatInput'),
     \ 'chat-new': function('s:CommandChatNew'),
     \ 'chat-toggle': function('s:CommandChatToggle'),
     \ }
