@@ -122,7 +122,7 @@ Alternate Keybinds                             *augment-alternate-keybinds*
 
 By default, tab is used to accept a suggestion. If you want to use a different
 key, create a mapping that calls `augment#Accept()`. The function takes an
-optional arugment used to specify the fallback text to insert if no suggestion
+optional argument used to specify the fallback text to insert if no suggestion
 is available.
 
 >vim
