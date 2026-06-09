@@ -82,6 +82,7 @@ The following commands are provided:
 :Augment chat-input    " Compose a chat message in a floating window (Neovim only)
 :Augment chat-new      " Start a new chat conversation
 :Augment chat-toggle   " Toggle the chat panel visibility
+:Augment help          " List the available commands, or `:Augment help <command>` for details
 ```
 
 ## Workspace Folders

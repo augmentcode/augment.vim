@@ -288,6 +288,97 @@ function! s:CommandChatToggle(range, args) abort
     call augment#chat#Toggle()
 endfunction
 
+" Help text for the available commands. The order of this list determines the
+" order shown by `:Augment help`. Each entry has a usage string (shown in the
+" detail header), a one-line summary (shown in the command list), and a list of
+" detail lines (shown by `:Augment help <command>`).
+let s:command_help = [
+    \ {'name': 'status', 'usage': 'status', 'summary': 'View the current status of the plugin.', 'detail': [
+    \     'View the current status of the plugin, including whether you are',
+    \     'signed in and the syncing progress of any configured workspace folders.',
+    \ ]},
+    \ {'name': 'signin', 'usage': 'signin', 'summary': 'Sign in to Augment.', 'detail': [
+    \     'Authenticate with the Augment service using OAuth. This is required',
+    \     'before using the plugin for the first time.',
+    \ ]},
+    \ {'name': 'signout', 'usage': 'signout', 'summary': 'Sign out of Augment.', 'detail': [
+    \     'Sign out of Augment.',
+    \ ]},
+    \ {'name': 'log', 'usage': 'log', 'summary': 'View the plugin log.', 'detail': [
+    \     'View the plugin log. This is useful for debugging.',
+    \ ]},
+    \ {'name': 'chat', 'usage': 'chat [message]', 'summary': 'Send a chat message to Augment AI.', 'detail': [
+    \     'Start a chat with Augment AI. In visual mode, the selected text will',
+    \     'be included in the chat request. If no message is provided, you will',
+    \     'be prompted to enter one.',
+    \ ]},
+    \ {'name': 'chat-input', 'usage': 'chat-input', 'summary': 'Compose a chat message in a floating window (Neovim only).', 'detail': [
+    \     'Open a centered floating window with a markdown scratch buffer for',
+    \     'composing a chat message before sending it. Submit with <C-s> or, in',
+    \     'normal mode, <CR>; cancel with <Esc> or <C-c>. Like ":Augment chat" it',
+    \     'is range-aware. Requires Neovim; in Vim it falls back to the input()',
+    \     'prompt used by ":Augment chat".',
+    \ ]},
+    \ {'name': 'chat-new', 'usage': 'chat-new', 'summary': 'Start a new chat conversation.', 'detail': [
+    \     'Start a new chat conversation with Augment AI, clearing the history',
+    \     'from your context.',
+    \ ]},
+    \ {'name': 'chat-toggle', 'usage': 'chat-toggle', 'summary': 'Toggle the chat panel visibility.', 'detail': [
+    \     'Open or close the chat conversation window. The conversation is',
+    \     'preserved while the window is closed and can be reopened with the',
+    \     'same command.',
+    \ ]},
+    \ {'name': 'help', 'usage': 'help [command]', 'summary': 'Show help for Augment commands.', 'detail': [
+    \     'Show help for Augment commands. With no argument, list all available',
+    \     'commands with a short description. With a command name, show detailed',
+    \     'help for that command.',
+    \ ]},
+    \ {'name': 'enable', 'usage': 'enable', 'summary': '(deprecated) See g:augment_disable_completions.', 'detail': [
+    \     'Deprecated. Use the g:augment_disable_completions option instead,',
+    \     'which disables inline completions without affecting chat. See',
+    \     '":help g:augment_disable_completions" for more details.',
+    \ ]},
+    \ {'name': 'disable', 'usage': 'disable', 'summary': '(deprecated) See g:augment_disable_completions.', 'detail': [
+    \     'Deprecated. Use the g:augment_disable_completions option instead,',
+    \     'which disables inline completions without affecting chat. See',
+    \     '":help g:augment_disable_completions" for more details.',
+    \ ]},
+    \ ]
+
+" Show help for the available commands. With no argument, list all commands;
+" with a command name, show detailed help for that command.
+function! s:CommandHelp(range, args) abort
+    let topic = empty(a:args) ? '' : split(a:args)[0]
+
+    if empty(topic)
+        echohl Title
+        echo 'Augment commands'
+        echohl None
+        for entry in s:command_help
+            echo printf('  :Augment %-12s %s', entry.name, entry.summary)
+        endfor
+        echo 'Run ":Augment help <command>" for more details about a command.'
+        return
+    endif
+
+    for entry in s:command_help
+        " Note that ==? is case-insensitive comparison
+        if topic ==? entry.name
+            echohl Title
+            echo ':Augment ' . entry.usage
+            echohl None
+            for line in entry.detail
+                echo '    ' . line
+            endfor
+            return
+        endif
+    endfor
+
+    echohl WarningMsg
+    echo 'Augment: Unknown command: "' . topic . '". Run ":Augment help" to list available commands.'
+    echohl None
+endfunction
+
 " Handle user commands
 let s:command_handlers = {
     \ 'log': function('s:CommandLog'),
@@ -300,6 +391,7 @@ let s:command_handlers = {
     \ 'chat-input': function('s:CommandChatInput'),
     \ 'chat-new': function('s:CommandChatNew'),
     \ 'chat-toggle': function('s:CommandChatToggle'),
+    \ 'help': function('s:CommandHelp'),
     \ }
 
 function! augment#Command(range, args) abort range
@@ -308,11 +400,12 @@ function! augment#Command(range, args) abort range
         return
     endif
 
-    " If the plugin failed to initialize, only allow status and log commands
+    " If the plugin failed to initialize, only allow status, log, and help
+    " commands
     let command = split(a:args)[0]
     if (!exists('g:augment_initialized') || !g:augment_initialized)
-                \ && command !=# 'status' && command !=# 'log'
-        call augment#DisplayError('The Augment plugin failed to initialize. Only `:Augment status` and `:Augment log` commands are available.')
+                \ && command !=# 'status' && command !=# 'log' && command !=# 'help'
+        call augment#DisplayError('The Augment plugin failed to initialize. Only `:Augment status`, `:Augment log`, and `:Augment help` commands are available.')
         return
     endif
 

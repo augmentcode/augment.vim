@@ -9,6 +9,8 @@ include any changes that may impact the user experience.
 - Add the `:Augment chat-input` command, which opens a floating window for
   composing a chat message before sending it (Neovim only). It is range-aware
   like `:Augment chat`, and falls back to the standard `input()` prompt on Vim.
+- Add the `:Augment help [command]` command, which lists the available commands
+  or shows more detailed help for a specific command.
 
 ## 0.25.1
 

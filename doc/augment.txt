@@ -69,6 +69,12 @@ The following commands are provided:
 `:Augment chat-toggle`
     Open/close the chat conversation window.
 
+                                                            *:Augment_help*
+`:Augment help [command]`
+    Show help for the Augment commands. With no argument, list all available
+    commands with a short description. With a command name, show more detailed
+    help for that command, for example `:Augment help chat`.
+
 
 ------------------------------------------------------------------------------
 Options                                                   *augment-options*
