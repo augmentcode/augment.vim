@@ -4,6 +4,11 @@ This file documents the notable changes for each stable version of the Augment
 Vim plugin. The following list is not necessarily comprehensive, but should
 include any changes that may impact the user experience.
 
+## Unreleased
+
+- Add the `:Augment help [command]` command, which lists the available commands
+  or shows more detailed help for a specific command.
+
 ## 0.25.1
 
 - Deprecate the `Enable` and `Disable` commands in favor of the

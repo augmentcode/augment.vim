@@ -81,6 +81,7 @@ The following commands are provided:
 :Augment chat          " Send a chat message to Augment AI
 :Augment chat-new      " Start a new chat conversation
 :Augment chat-toggle   " Toggle the chat panel visibility
+:Augment help          " List the available commands, or `:Augment help <command>` for details
 ```
 
 ## Workspace Folders
