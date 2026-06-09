@@ -84,6 +84,15 @@ endfunction
 " when the user submits. This relies on Neovim's floating window API and should
 " only be called when running under Neovim.
 function! augment#chat#OpenInputWindow(OnSubmit) abort
+    " If an input window is already open, refocus it instead of opening a new
+    " one. This avoids orphaning the existing float (and losing any typed
+    " content) when the command is invoked again after focus moved away.
+    if exists('s:input_win') && s:input_win != -1 && nvim_win_is_valid(s:input_win)
+        call nvim_set_current_win(s:input_win)
+        startinsert
+        return
+    endif
+
     let s:input_on_submit = a:OnSubmit
 
     " Create an unlisted scratch buffer (buftype=nofile, noswapfile)

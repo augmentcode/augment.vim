@@ -53,7 +53,9 @@ The following commands are provided:
     message with `<C-s>` (insert or normal mode) or `<CR>` (normal mode); cancel
     with `<Esc>` (normal mode) or `<C-c>` (insert or normal mode). Like
     `:Augment chat`, it is range-aware: invoking it from visual mode (or with a
-    range) includes the selected text in the chat request.
+    range) includes the selected text in the chat request. If an input window is
+    already open, running the command again refocuses it rather than opening a
+    new one, preserving any text you have typed.
 
     The floating window requires Neovim. In Vim this command falls back to the
     standard `input()` prompt used by `:Augment chat`. No default mapping is

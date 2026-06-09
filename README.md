@@ -159,6 +159,10 @@ mode, and its title shows the available keys:
 Like `:Augment chat`, it is range-aware: invoking it from visual mode (or with a
 range) includes the selected text in the chat request once you submit.
 
+If an input window is already open, running the command again refocuses it
+rather than opening a new one, so you won't lose what you've typed if focus
+moves away.
+
 This command requires Neovim's floating window support. In Vim it falls back to
 the standard `input()` prompt used by `:Augment chat`, with no change to
 existing behavior. The plugin does not define a default mapping for it, so map
