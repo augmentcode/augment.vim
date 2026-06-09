@@ -46,6 +46,21 @@ The following commands are provided:
     Start a chat with Augment AI. In visual mode, the selected text will be
     included in the chat request.
 
+                                                            *:Augment_chat_input*
+`:Augment chat-input`
+    Open a centered floating window with a markdown scratch buffer to compose a
+    chat message before sending it. The window opens in insert mode. Submit the
+    message with `<C-s>` (insert or normal mode) or `<CR>` (normal mode); cancel
+    with `<Esc>` (normal mode) or `<C-c>` (insert or normal mode). Like
+    `:Augment chat`, it is range-aware: invoking it from visual mode (or with a
+    range) includes the selected text in the chat request. If an input window is
+    already open, running the command again refocuses it rather than opening a
+    new one, preserving any text you have typed.
+
+    The floating window requires Neovim. In Vim this command falls back to the
+    standard `input()` prompt used by `:Augment chat`. No default mapping is
+    defined for this command.
+
                                                             *:Augment_chat_new*
 `:Augment chat-new`
     Start a new chat conversation with Augment AI.
@@ -53,6 +68,12 @@ The following commands are provided:
                                                             *:Augment_chat_toggle*
 `:Augment chat-toggle`
     Open/close the chat conversation window.
+
+                                                            *:Augment_help*
+`:Augment help [command]`
+    Show help for the Augment commands. With no argument, list all available
+    commands with a short description. With a command name, show more detailed
+    help for that command, for example `:Augment help chat`.
 
 
 ------------------------------------------------------------------------------
@@ -122,7 +143,7 @@ Alternate Keybinds                             *augment-alternate-keybinds*
 
 By default, tab is used to accept a suggestion. If you want to use a different
 key, create a mapping that calls `augment#Accept()`. The function takes an
-optional arugment used to specify the fallback text to insert if no suggestion
+optional argument used to specify the fallback text to insert if no suggestion
 is available.
 
 >vim

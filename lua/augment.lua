@@ -40,7 +40,7 @@ M.start_client = function(command, notification_methods, workspace_folders)
         config.workspace_folders = workspace_folders
     end
 
-    local id = vim.lsp.start_client(config)
+    local id = vim.lsp.start(config, { attach = false })
     return id
 end
 
@@ -57,7 +57,11 @@ M.notify = function(client_id, method, params)
         return
     end
 
-    client.notify(method, params)
+    if vim.fn.has('nvim-0.11') == 1 then
+        client:notify(method, params)
+    else
+        client.notify(method, params)
+    end
 end
 
 -- Send a lsp request
@@ -68,9 +72,16 @@ M.request = function(client_id, method, params)
         return
     end
 
-    local _, id = client.request(method, params, function(err, result)
-        vim.call('augment#client#NvimResponse', method, params, result, err)
-    end)
+    local _, id
+    if vim.fn.has('nvim-0.11') == 1 then
+        _, id = client:request(method, params, function(err, result)
+            vim.call('augment#client#NvimResponse', method, params, result, err)
+        end)
+    else
+        _, id = client.request(method, params, function(err, result)
+            vim.call('augment#client#NvimResponse', method, params, result, err)
+        end)
+    end
     return id
 end
 

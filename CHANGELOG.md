@@ -4,6 +4,18 @@ This file documents the notable changes for each stable version of the Augment
 Vim plugin. The following list is not necessarily comprehensive, but should
 include any changes that may impact the user experience.
 
+## Unreleased
+
+- Add the `:Augment chat-input` command, which opens a floating window for
+  composing a chat message before sending it (Neovim only). It is range-aware
+  like `:Augment chat`, and falls back to the standard `input()` prompt on Vim.
+- Add the `:Augment help [command]` command, which lists the available commands
+  or shows more detailed help for a specific command.
+- Fix Neovim API deprecation warnings: migrate from `vim.lsp.start_client` to
+  `vim.lsp.start` (with `attach = false` to preserve the plugin's explicit
+  buffer-attach logic) and use the colon-method syntax for `client:notify` and
+  `client:request` on Neovim 0.11+, with a compatibility fallback for 0.10.
+
 ## 0.25.1
 
 - Deprecate the `Enable` and `Disable` commands in favor of the

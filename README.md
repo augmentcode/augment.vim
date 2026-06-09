@@ -79,8 +79,10 @@ The following commands are provided:
 :Augment signout       " Sign out of Augment
 :Augment log           " View the plugin log
 :Augment chat          " Send a chat message to Augment AI
+:Augment chat-input    " Compose a chat message in a floating window (Neovim only)
 :Augment chat-new      " Start a new chat conversation
 :Augment chat-toggle   " Toggle the chat panel visibility
+:Augment help          " List the available commands, or `:Augment help <command>` for details
 ```
 
 ## Workspace Folders
@@ -144,6 +146,33 @@ You can interact with chat in two ways:
    - Type `:Augment chat` followed by your question about the selection
 
 The response will appear in a separate chat buffer with markdown formatting.
+
+### Floating chat input (Neovim only)
+
+The `:Augment chat-input` command opens a centered floating window with a
+markdown scratch buffer where you can compose a chat message before sending it.
+This is handy for writing longer, multi-line prompts. The window opens in insert
+mode, and its title shows the available keys:
+
+- `<C-s>` (insert or normal mode) or `<CR>` (normal mode) submits the message
+- `<Esc>` (normal mode) or `<C-c>` (insert or normal mode) cancels
+
+Like `:Augment chat`, it is range-aware: invoking it from visual mode (or with a
+range) includes the selected text in the chat request once you submit.
+
+If an input window is already open, running the command again refocuses it
+rather than opening a new one, so you won't lose what you've typed if focus
+moves away.
+
+This command requires Neovim's floating window support. In Vim it falls back to
+the standard `input()` prompt used by `:Augment chat`, with no change to
+existing behavior. The plugin does not define a default mapping for it, so map
+it yourself if you'd like a shortcut, for example:
+
+```vim
+nnoremap <leader>ai :Augment chat-input<CR>
+vnoremap <leader>ai :Augment chat-input<CR>
+```
 
 To start a new conversation, use the `:Augment chat-new` command. This will
 clear the chat history from your context.
