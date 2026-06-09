@@ -186,8 +186,9 @@ function! s:CommandChat(range, args) abort
     " prompt the user for a message
     let message = empty(a:args) ? input('Message: ') : a:args
 
-    " Handle cancellation or empty input
-    if message ==# '' || message =~# '^\s*$'
+    " Handle cancellation or empty input. \_s matches whitespace including
+    " newlines, so a message that is only blank lines is treated as cancel.
+    if message ==# '' || message =~# '^\_s*$'
         redraw
         echo 'Chat cancelled'
         return
@@ -254,13 +255,15 @@ function! s:CommandChatInput(range, args) abort
     endif
 
     let source_win = win_getid()
-    let Callback = function('s:ChatInputSubmit', [source_win, ranged, was_visual])
+    let Callback = function('s:ChatInputSubmit', [source_win, ranged])
     call augment#chat#OpenInputWindow(Callback)
 endfunction
 
 " Handle a message submitted from the floating chat input
-function! s:ChatInputSubmit(source_win, ranged, reselect, message) abort
-    if a:message ==# '' || a:message =~# '^\s*$'
+function! s:ChatInputSubmit(source_win, ranged, message) abort
+    " \_s matches whitespace including newlines, so a buffer of only blank
+    " lines is treated as cancel rather than sending an empty message.
+    if a:message ==# '' || a:message =~# '^\_s*$'
         redraw
         echo 'Chat cancelled'
         return
@@ -271,9 +274,11 @@ function! s:ChatInputSubmit(source_win, ranged, reselect, message) abort
         call win_gotoid(a:source_win)
     endif
 
-    " Re-select the original visual range so it is passed through to the chat
-    " request, mirroring the behavior of `:Augment chat` in visual mode.
-    if a:reselect
+    " Re-select the original range so it is passed through to the chat request,
+    " mirroring the behavior of `:Augment chat` in visual mode. The '< and '>
+    " marks were set when the command left visual mode, so `gv` works whether
+    " invoked from visual mode or via an explicit `:'<,'>` range.
+    if a:ranged
         normal! gv
     endif
 
