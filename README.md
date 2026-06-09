@@ -1,19 +1,27 @@
 # Augment Vim & Neovim Plugin
 
+> [!IMPORTANT]
+> **Project status: maintenance mode**
+>
+> - Inline code completions have been **sunset and no longer function**.
+> - The plugin is in **maintenance mode**: the Augment team takes care of bug
+>   fixes and security patches.
+> - Small feature requests will be considered.
+
 ## A Quick Tour
 
-Augment's Vim/Neovim plugin provides inline code completions and multi-turn
-chat conversations specially tailored to your codebase. The plugin is designed
-to work with any modern Vim or Neovim setup, and features the same underlying
-context engine that powers our VSCode and IntelliJ plugins.
+Augment's Vim/Neovim plugin provides multi-turn chat conversations specially
+tailored to your codebase. The plugin is designed to work with any modern Vim
+or Neovim setup, and features the same underlying context engine that powers
+our VSCode and IntelliJ plugins.
 
 Once you've installed the plugin, tell Augment about your project by adding
 [workspace folders](#workspace-folders) to your config file, and then sign-in
-to the Augment service. You can now open a source file in your project, begin
-typing, and you should receive context-aware code completions. Use tab to
-accept a suggestion, or keep typing to refine the suggestions. To ask questions
-about your codebase or request specific changes, use the `:Augment chat` command
-to start a chat conversation.
+to the Augment service. To ask questions about your codebase or request
+specific changes, use the `:Augment chat` command to start a chat conversation.
+
+Note: Inline code completions have been sunset and are no longer available,
+even where older documentation or options still reference them.
 
 ## Getting Started
 
@@ -68,9 +76,6 @@ to start a chat conversation.
 
 ## Basic Usage
 
-Open a file in vim, start typing, and use tab to accept suggestions as they
-appear.
-
 The following commands are provided:
 
 ```vim
@@ -90,8 +95,8 @@ The following commands are provided:
 Workspace folders help Augment understand your codebase better by providing
 additional context. Adding your project's root directory as a workspace folder
 allows Augment to take advantage of context from across your project, rather
-than just the currently open file, improving the accuracy and style of
-completions and chat.
+than just the currently open file, improving the accuracy and style of chat
+responses.
 
 You can configure workspace folders by setting
 `g:augment_workspace_folders` in your vimrc:
@@ -102,7 +107,7 @@ let g:augment_workspace_folders = ['/path/to/project', '~/another-project']
 
 Workspace folders can be specified using absolute paths or paths relative to
 your home directory (~). Adding your project's root directory as a workspace
-folder helps Augment generate completions that match your codebase's patterns
+folder helps Augment generate responses that match your codebase's patterns
 and conventions.
 
 Note: This option must be set before the plugin is loaded.
@@ -181,46 +186,16 @@ Use the `:Augment chat-toggle` command to open and close the chat panel. When
 the chat panel is closed, the chat conversation will be preserved and can be
 reopened with the same command.
 
-## Alternate Keybinds
+## Completions (sunset)
 
-By default, tab is used to accept a suggestion. If you want to use a
-different key, create a mapping that calls `augment#Accept()`. The function
-takes an optional argument used to specify the fallback text to insert if no
-suggestion is available.
-
-```vim
-" Use Ctrl-Y to accept a suggestion
-inoremap <c-y> <cmd>call augment#Accept()<cr>
-
-" Use enter to accept a suggestion, falling back to a newline if no suggestion
-" is available
-inoremap <cr> <cmd>call augment#Accept("\n")<cr>
-```
-
-or in neovim
-
-```lua
--- Use Ctrl-Y to accept a suggestion
-vim.keymap.set('i', '<C-Y>', '<cmd>call augment#Accept()<CR>', { noremap = true })
--- Use enter to accept a suggestion, falling back to a newline if no suggestion is available
-vim.keymap.set('i', '<cr>', '<cmd>call augment#Accept()<CR>', { noremap = true })
-```
-
-The default tab mapping can be disabled by setting
-`g:augment_disable_tab_mapping = v:true` before the plugin is loaded.
-
-Completions can be disabled entirely by setting
-`g:augment_disable_completions = v:true` in your vimrc or at any time during
-editing.
-
-If another plugin uses tab in insert mode, the Augment tab mapping may be
-overridden depending on the order in which the plugins are loaded. If tab isn't
-working for you, the `imap <tab>` command can be used to check if the mapping is
-present.
+Inline code completions have been sunset and no longer function. The
+completion-related options and mappings (such as `augment#Accept()`,
+`g:augment_disable_tab_mapping`, and `g:augment_disable_completions`) remain
+in the plugin for backwards compatibility, but they no longer have any effect.
 
 ## FAQ
 
-**Q: I'm not seeing any completions. Is the plugin working?**
+**Q: How can I check whether the plugin is working?**
 
 A: You may want to first check the output of the `:Augment status` command.
 This command will show the current status of the plugin, including whether
