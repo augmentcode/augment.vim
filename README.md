@@ -128,6 +128,13 @@ node_modules/
 
 For more information on how to use the `.augmentignore` file, see the [documentation](https://docs.augmentcode.com/setup-augment/sync).
 
+Augment also excludes ignored files and directories from its filesystem
+watcher, so adding large directories like `node_modules/` to `.augmentignore`
+reduces the number of file watches Augment registers with the operating system.
+If the system file-watch limit is reached (for example
+`fs.inotify.max_user_watches` on Linux), Augment logs a warning (visible via
+`:Augment log`) and continues syncing the directories it is already watching.
+
 
 ## Chat
 

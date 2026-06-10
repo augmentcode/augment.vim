@@ -15,6 +15,11 @@ include any changes that may impact the user experience.
   `vim.lsp.start` (with `attach = false` to preserve the plugin's explicit
   buffer-attach logic) and use the colon-method syntax for `client:notify` and
   `client:request` on Neovim 0.11+, with a compatibility fallback for 0.10.
+- Fix the filesystem watcher exhausting the operating system's file-watch limit
+  (e.g. `fs.inotify.max_user_watches` on Linux) on large workspaces: directories
+  excluded by `.augmentignore`/`.gitignore` are no longer watched, and when the
+  limit is reached Augment now logs a warning and keeps syncing the directories
+  it is already watching instead of failing.
 
 ## 0.25.1
 
